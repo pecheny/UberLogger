@@ -285,6 +285,8 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         var showMessage = log.Message;
         //Make all messages single line
         showMessage = showMessage.Replace(System.Environment.NewLine, " ");
+        showMessage = showMessage.Replace("\r", " ");
+        showMessage = showMessage.Replace("\n", " ");
         if(showTimes)
         {
             showMessage = log.GetTimeStampAsString() + ": " + showMessage; 
