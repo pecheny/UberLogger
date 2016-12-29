@@ -334,6 +334,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
 
                 foreach (var log in EditorLogger.LogInfo)
                 {
+                    CheckChannel(log.Channel);
                     if (ShouldShowLog(filterRegex, log))
                     {
                         var matchString = log.Message + "!$" + log.Severity + "!$" + log.Channel;
@@ -370,6 +371,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
             {
                 foreach (var log in EditorLogger.LogInfo)
                 {
+                    CheckChannel(log.Channel);
                     if (ShouldShowLog(filterRegex, log))
                     {
                         var content = GetLogLineGUIContent(log, ShowTimes);
@@ -874,6 +876,14 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                 menu.AddDisabledItem(new GUIContent(title));
         }
         menu.ShowAsContext();
+    }
+
+     void CheckChannel(string logChannel)
+    {
+        if(string.IsNullOrEmpty(logChannel))
+            return;
+        if (!EditorLogger.Channels.Contains(logChannel))
+            EditorLogger.Channels.Add(logChannel);
     }
 
 }
