@@ -235,27 +235,26 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     void DrawChannels()
     {
         var channels = GetChannels();
-        int currentChannelIndex = 0;
-        for (int c1 = 0; c1 < channels.Count; c1++)
+        var drawRect = new Rect(DrawPos, new Vector2(position.width, 32));
+        GUILayout.BeginArea(drawRect);
+        GUILayout.BeginHorizontal();
+        var all =  GUILayout.Button("All");
+        foreach (var channel in channels)
         {
-            if (channels[c1] == CurrentChannel)
+            var oldChannelState = selectedChannels.Contains(channel);
+            var channelEnabled = all || GUILayout.Toggle(oldChannelState, channel, "Button");
+            if (oldChannelState!=channelEnabled)
             {
-                currentChannelIndex = c1;
-                break;
+                Dirty = true;
+                if (channelEnabled)
+                    selectedChannels.Add(channel);
+                 else
+                    selectedChannels.Remove(channel);
             }
         }
-
-        var content = new GUIContent("S");
-        var size = GUI.skin.button.CalcSize(content);
-        var drawRect = new Rect(DrawPos, new Vector2(position.width, size.y));
-        currentChannelIndex = GUI.SelectionGrid(drawRect, currentChannelIndex, channels.ToArray(), channels.Count);
-        if (CurrentChannel != channels[currentChannelIndex])
-        {
-            CurrentChannel = channels[currentChannelIndex];
-            ClearSelectedMessage();
-            MakeDirty = true;
-        }
-        DrawPos.y += size.y;
+        GUILayout.EndHorizontal();
+        GUILayout.EndArea();
+        DrawPos.y += 32;
     }
 
     /// <summary>
@@ -263,20 +262,21 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     /// </summary>
     bool ShouldShowLog(System.Text.RegularExpressions.Regex regex, LogInfo log)
     {
-        if (log.Channel == CurrentChannel || CurrentChannel == "All" || (CurrentChannel == "No Channel" && String.IsNullOrEmpty(log.Channel)))
-        {
-            if ((log.Severity == LogSeverity.Message && ShowMessages)
-            || (log.Severity == LogSeverity.Warning && ShowWarnings)
-            || (log.Severity == LogSeverity.Error && ShowErrors))
-            {
-                if (regex == null || regex.IsMatch(log.Message))
-                {
-                    return true;
-                }
-            }
+        switch (log.Severity) {
+            case LogSeverity.Message :
+                if (!ShowMessages) return false;
+                break;
+            case LogSeverity.Warning :
+                if (!ShowWarnings) return false;
+                break;
+            case LogSeverity.Error :
+                if (!ShowErrors) return false;
+                break;
         }
-
-        return false;
+        var channel = String.IsNullOrEmpty(log.Channel) ? "No Channel" : log.Channel;
+        if (!selectedChannels.Contains(channel))
+            return false;
+        return (regex == null || regex.IsMatch(log.Message));
     }
 
     /// <summary>
@@ -424,7 +424,6 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
             {
                 GUI.backgroundColor = Color.white;
             }
-
 
             Event e = Event.current;
             var drawRect = new Rect(logLineX, buttonY, contentRect.width, LogListLineHeight);
@@ -686,7 +685,6 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         var categories = EditorLogger.Channels;
 
         var channelList = new List<string>();
-        channelList.Add("All");
         channelList.Add("No Channel");
         channelList.AddRange(categories);
         return channelList;
@@ -819,7 +817,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
 
     GUIStyle EntryStyleBackEven;
     GUIStyle EntryStyleBackOdd;
-    string CurrentChannel = null;
+    List<String> selectedChannels;
     string FilterRegex = null;
     bool ShowErrors = true;
     bool ShowWarnings = true;
@@ -869,7 +867,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
             var title = stackRec.MethodName +  "() (" + Path.GetFileName(stackRec.FileName) + ":" +stackRec.LineNumber + ")";
             var recClosure = stackRec;
             var filename = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), stackRec.FileName);
-            var exists = !string.IsNullOrEmpty(filename) && System.IO.File.Exists(filename);
+            var exists = (!string.IsNullOrEmpty(filename)) && System.IO.File.Exists(filename);
             if (exists)
                 menu.AddItem(new GUIContent(title), false, (data)=>JumpToSource(recClosure), title);
             else
