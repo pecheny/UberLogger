@@ -484,7 +484,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         var oldColor = GUI.backgroundColor;
         SelectedRenderLog = Mathf.Clamp(SelectedRenderLog, 0, EditorLogger.LogInfo.Count);
 
-        if (RenderLogs.Count > 0 && SelectedRenderLog >= 0)
+        if (RenderLogs.Count > 0 && SelectedRenderLog >= 0 && SelectedRenderLog < RenderLogs.Count)
         {
             var countedLog = RenderLogs[SelectedRenderLog];
             var log = countedLog.Log;
