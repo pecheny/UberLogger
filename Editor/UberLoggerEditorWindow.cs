@@ -109,7 +109,6 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         DrawPos = Vector2.zero;
         DrawToolbar();
         DrawFilter();
-
         DrawChannels();
 
         float logPanelHeight = CurrentTopPaneHeight - DrawPos.y;
@@ -308,12 +307,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
 
         float buttonY = 0;
 
-        System.Text.RegularExpressions.Regex filterRegex = null;
 
-        if (!String.IsNullOrEmpty(FilterRegex))
-        {
-            filterRegex = new Regex(FilterRegex);
-        }
 
         var collapseBadgeStyle = EditorStyles.miniButton;
         var logLineStyle = EntryStyleBackEven;
@@ -321,6 +315,21 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         // If we've been marked dirty, we need to recalculate the elements to be displayed
         if (Dirty)
         {
+
+            System.Text.RegularExpressions.Regex filterRegex = null;
+            invalidRegexFilter = false;
+            if (!String.IsNullOrEmpty(FilterRegex))
+            {
+                try
+                {
+                    filterRegex = new Regex(FilterRegex);
+                }
+                catch
+                {
+                    invalidRegexFilter = true;
+                }
+            }
+
             LogListMaxWidth = 0;
             LogListLineHeight = 0;
             CollapseBadgeMaxWidth = 0;
@@ -645,7 +654,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         return null;
     }
 
-
+    bool invalidRegexFilter;
     void DrawFilter()
     {
         Vector2 size;
@@ -657,15 +666,16 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         if (ButtonClamped("Clear", GUI.skin.button, out size))
         {
             clearFilter = true;
-
             GUIUtility.keyboardControl = 0;
             GUIUtility.hotControl = 0;
         }
         DrawPos.x += size.x;
 
         var drawRect = new Rect(DrawPos, new Vector2(position.width - DrawPos.x, size.y));
+        if (invalidRegexFilter)
+            GUI.backgroundColor = Color.red;
         filterRegex = EditorGUI.TextArea(drawRect, FilterRegex);
-
+        GUI.backgroundColor = Color.white;
         if (clearFilter)
         {
             filterRegex = null;
