@@ -302,13 +302,13 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     /// </summary>
     public void DrawLogList(float height)
     {
+        // show context menu on next tick after right click to allow repaint selected line
+        if (contextMenuAwaiting!=null) {
+            ShowStacktraceContextMenu(contextMenuAwaiting);
+            contextMenuAwaiting = null;
+        }
         var oldColor = GUI.backgroundColor;
-
-
         float buttonY = 0;
-
-
-
         var collapseBadgeStyle = EditorStyles.miniButton;
         var logLineStyle = EntryStyleBackEven;
 
@@ -458,7 +458,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                 else if (rghtClick)
                 {
                     SelectLine(renderLogIndex);
-                    ShowStacktraceContextMenu(log);
+                    contextMenuAwaiting = log;
                 }
             }
 
@@ -836,6 +836,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     bool ShowMessages = true;
     int SelectedCallstackFrame = 0;
     bool ShowFrameSource = false;
+    private LogInfo contextMenuAwaiting;
 
     class CountedLog
     {
