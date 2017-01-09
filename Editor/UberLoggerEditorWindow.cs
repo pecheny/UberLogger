@@ -304,8 +304,9 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     {
         // show context menu on next tick after right click to allow repaint selected line
         if (contextMenuAwaiting!=null) {
-            ShowStacktraceContextMenu(contextMenuAwaiting);
+            var local = contextMenuAwaiting;
             contextMenuAwaiting = null;
+            ShowStacktraceContextMenu(local);
         }
         var oldColor = GUI.backgroundColor;
         float buttonY = 0;
@@ -441,7 +442,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
             var content = GetLogLineGUIContent(log, ShowTimes);
 
 
-            if (drawRect.Contains(e.mousePosition)) {
+            if (drawRect.Contains(e.mousePosition) && e.type == EventType.MouseDown) {
                 var snglClick = e.isMouse &&   e.button  == 0 && e.clickCount == 1;
                 var dblClick = e.isMouse && e.button  == 0 && e.clickCount == 2;
                 var rghtClick = e.isMouse && e.button  == 1;
@@ -829,7 +830,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
 
     GUIStyle EntryStyleBackEven;
     GUIStyle EntryStyleBackOdd;
-    List<String> selectedChannels;
+    List<string> selectedChannels = new List<string>();
     string FilterRegex = null;
     bool ShowErrors = true;
     bool ShowWarnings = true;
@@ -893,8 +894,14 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     {
         if(string.IsNullOrEmpty(logChannel))
             return;
-        if (!EditorLogger.Channels.Contains(logChannel))
-            EditorLogger.Channels.Add(logChannel);
+        if (!EditorLogger.Channels.Contains(logChannel)) {}
+            AddChannel(logChannel);
+    }
+
+    void AddChannel(string logChannel)
+    {
+        EditorLogger.Channels.Add(logChannel);
+        selectedChannels.Add(logChannel);
     }
 
 }
