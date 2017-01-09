@@ -549,11 +549,16 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
             }
 
             //Render the content
-            var contentRect = new Rect(0, 0, Mathf.Max(contentWidth, drawRect.width), contentHeight);
+            var message = new GUIContent(log.Message);
+            GUIStyle style = GUI.skin.box;
+            style.alignment = TextAnchor.MiddleCenter;
+            Vector2 logMessageSize = style.CalcSize(message);
+            float lineY = logMessageSize.y;
 
+            var contentRect = new Rect(0, 0, Mathf.Max(new float[]{contentWidth, drawRect.width, logMessageSize.x}), contentHeight + lineY);
             LogDetailsScrollPosition = GUI.BeginScrollView(drawRect, LogDetailsScrollPosition, contentRect);
 
-            float lineY = 0;
+            EditorGUI.TextArea(new Rect(0.0f, 0.0f, logMessageSize.x, logMessageSize.y), log.Message);
             for (int c1 = 0; c1 < detailLines.Count; c1++)
             {
                 var lineContent = detailLines[c1];
