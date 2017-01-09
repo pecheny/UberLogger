@@ -66,6 +66,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         ErrorIcon = SmallErrorIcon;
         WarningIcon = SmallWarningIcon;
         MessageIcon = SmallMessageIcon;
+        colorProvider = colorProvider ?? new UberColorProvider();
         Dirty = true;
         Repaint();
 
@@ -237,9 +238,15 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         var drawRect = new Rect(DrawPos, new Vector2(position.width, 32));
         GUILayout.BeginArea(drawRect);
         GUILayout.BeginHorizontal();
+        if(GUILayout.Button("None"))
+        {
+            selectedChannels.Clear();
+            Dirty = true;
+        }
         var all =  GUILayout.Button("All");
         foreach (var channel in channels)
         {
+            GUI.backgroundColor = colorProvider.GetColor(channel);
             var oldChannelState = selectedChannels.Contains(channel);
             var channelEnabled = all || GUILayout.Toggle(oldChannelState, channel, "Button");
             if (oldChannelState!=channelEnabled)
@@ -251,6 +258,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                     selectedChannels.Remove(channel);
             }
         }
+        GUI.backgroundColor = Color.white;
         GUILayout.EndHorizontal();
         GUILayout.EndArea();
         DrawPos.y += 32;
@@ -434,7 +442,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
             }
             else
             {
-                GUI.backgroundColor = Color.white;
+                GUI.backgroundColor = colorProvider.GetColor(log.Channel);
             }
 
             Event e = Event.current;
@@ -838,7 +846,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     int SelectedCallstackFrame = 0;
     bool ShowFrameSource = false;
     private LogInfo contextMenuAwaiting;
-
+    private UberColorProvider colorProvider;
     class CountedLog
     {
         public UberLogger.LogInfo Log = null;
@@ -900,8 +908,9 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
 
     void AddChannel(string logChannel)
     {
+        if(EditorLogger.Channels.Contains(logChannel)) return;
         EditorLogger.Channels.Add(logChannel);
-        selectedChannels.Add(logChannel);
+//        selectedChannels.Add(logChannel);
     }
 
 }
