@@ -67,6 +67,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         WarningIcon = SmallWarningIcon;
         MessageIcon = SmallMessageIcon;
         colorProvider = colorProvider ?? new UberColorProvider();
+        contextMenuAwaiting = null;
         Dirty = true;
         Repaint();
 
@@ -501,6 +502,12 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     /// </summary>
     public void DrawLogDetails()
     {
+        if (Dirty)
+        {
+            // Drop full message label focus to make it refresh content after selecting new line
+            GUIUtility.keyboardControl = 0;
+        }
+
         var oldColor = GUI.backgroundColor;
         SelectedRenderLog = Mathf.Clamp(SelectedRenderLog, 0, EditorLogger.LogInfo.Count);
 
@@ -549,16 +556,17 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
             }
 
             //Render the content
-            var message = new GUIContent(log.Message);
-            GUIStyle style = GUI.skin.box;
+            var logContent = new GUIContent(log.Message);
+            var message = log.Message;
+            GUIStyle style = GUI.skin.label;
             style.alignment = TextAnchor.MiddleCenter;
-            Vector2 logMessageSize = style.CalcSize(message);
+            Vector2 logMessageSize = style.CalcSize(logContent);
             float lineY = logMessageSize.y;
 
-            var contentRect = new Rect(0, 0, Mathf.Max(new float[]{contentWidth, drawRect.width, logMessageSize.x}), contentHeight + lineY);
+            var contentRect = new Rect(0, 0, Mathf.Max(new float[]{contentWidth, drawRect.width, logMessageSize.x, position.width}), contentHeight + lineY);
             LogDetailsScrollPosition = GUI.BeginScrollView(drawRect, LogDetailsScrollPosition, contentRect);
+            EditorGUI.SelectableLabel(new Rect(0.0f, 0.0f, logMessageSize.x + 10, logMessageSize.y + 10), message, (GUIStyle) "CN Message");
 
-            EditorGUI.TextArea(new Rect(0.0f, 0.0f, logMessageSize.x, logMessageSize.y), log.Message);
             for (int c1 = 0; c1 < detailLines.Count; c1++)
             {
                 var lineContent = detailLines[c1];
@@ -599,7 +607,6 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                                     LastFrameClickTime = EditorApplication.timeSinceStartup;
                                 }
                             }
-
                         }
                         else
                         {
@@ -611,13 +618,11 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
                     if (ShowFrameSource && c1 == SelectedCallstackFrame)
                     {
                         GUI.backgroundColor = Color.white;
-
                         var sourceContent = GetFrameSourceGUIContent(frame);
                         if (sourceContent != null)
                         {
                             var sourceSize = sourceStyle.CalcSize(sourceContent);
                             var sourceRect = new Rect(0, lineY, contentRect.width, sourceSize.y);
-
                             GUI.Label(sourceRect, sourceContent, sourceStyle);
                             lineY += sourceSize.y;
                         }
@@ -850,7 +855,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     bool ShowMessages = true;
     int SelectedCallstackFrame = 0;
     bool ShowFrameSource = false;
-    private LogInfo contextMenuAwaiting;
+    private LogInfo contextMenuAwaiting = null;
     private UberColorProvider colorProvider;
     class CountedLog
     {
@@ -873,6 +878,7 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     {
         SelectedRenderLog = renderLogIndex;
         SelectedCallstackFrame = -1;
+        Dirty = true;
     }
 
     void SelectSourceGameObj(LogInfo log)
@@ -887,13 +893,15 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
     void ShowStacktraceContextMenu(LogInfo log)
     {
         GenericMenu menu = new GenericMenu();
+        menu.AddItem(new GUIContent("Copy details"), false, (data)=>CopyDetailsToBuffer(log), "Copy details");
+
         var ttl = log.Message.Substring(0, Mathf.Min(50, log.Message.Length)).Replace("/", "\\");
         menu.AddDisabledItem(new GUIContent(ttl));
         menu.AddSeparator("");
         foreach (var stackRec in log.Callstack) {
             var title = stackRec.MethodName +  "() (" + Path.GetFileName(stackRec.FileName) + ":" +stackRec.LineNumber + ")";
             var recClosure = stackRec;
-            var filename = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), stackRec.FileName);
+            var filename = String.IsNullOrEmpty(stackRec.FileName) ?  "" : System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), stackRec.FileName);
             var exists = (!string.IsNullOrEmpty(filename)) && System.IO.File.Exists(filename);
             if (exists)
                 menu.AddItem(new GUIContent(title), false, (data)=>JumpToSource(recClosure), title);
@@ -903,19 +911,29 @@ public class UberLoggerEditorWindow : EditorWindow, UberLoggerEditor.ILoggerWind
         menu.ShowAsContext();
     }
 
+    void CopyDetailsToBuffer(LogInfo log)
+    {
+        var otp = log.Message;
+        foreach (var frame in log.Callstack)
+        {
+            otp += "\r\n" + frame.GetFormattedMethodName();
+        }
+        EditorGUIUtility.systemCopyBuffer = otp;
+    }
+
      void CheckChannel(string logChannel)
     {
         if(string.IsNullOrEmpty(logChannel))
             return;
-        if (!EditorLogger.Channels.Contains(logChannel)) {}
+        if (!EditorLogger.Channels.Contains(logChannel))
             AddChannel(logChannel);
     }
 
     void AddChannel(string logChannel)
     {
-        if(EditorLogger.Channels.Contains(logChannel)) return;
+        if(EditorLogger.Channels.Contains(logChannel)) throw new Exception("Channel already added: " + logChannel);
         EditorLogger.Channels.Add(logChannel);
-//        selectedChannels.Add(logChannel);
+        selectedChannels.Add(logChannel);
     }
 
 }
